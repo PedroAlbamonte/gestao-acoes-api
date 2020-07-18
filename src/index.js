@@ -7,9 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(function(req, res, next) {
-    console.log(req.protocol);
-    console.log(req.headers['x-forwarded-proto']);
-    if(req.protocol !== 'https') {
+    if(req.headers['x-forwarded-proto'] !== 'https') {
         return res.status(403).send({message: 'SSL required'});
     }
     // allow the request to continue

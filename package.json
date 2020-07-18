@@ -7,15 +7,21 @@
     "start": "nodemon src/index.js",
     "debug": "nodemon --inspect src/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PedroAlbamonte/gestao-acoes-api.git"
+  },
   "keywords": [],
-  "author": "",
+  "author": "Pedro Albamonte",
   "license": "ISC",
+  "homepage": "https://github.com/PedroAlbamonte/gestao-acoes-api/blob/master/README.md",
   "dependencies": {
     "@lfreneda/eh-dia-util": "^1.2.0",
     "axios": "^0.19.2",
     "bovespa": "^0.2.5",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "google-auth-library": "^6.0.5",
     "knex": "^0.20.11",
     "pg": "^8.3.0",
     "sqlite3": "^4.1.1"
