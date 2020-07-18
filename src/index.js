@@ -6,6 +6,14 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(function(req, res, next) {
+    if(req.protocol !== 'https') {
+        return res.status(403).send({message: 'SSL required'});
+    }
+    // allow the request to continue
+    next();
+});
+
 app.use(routes);
 
 app.listen(port);
