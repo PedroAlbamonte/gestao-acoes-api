@@ -16,7 +16,7 @@ routes.post('/teste', StocksController.teste);
 routes.get('/darfs', DarfsController.index);
 
 routes.get('/', function(req, res, next) {
-    res.render("OK", { title: 'All Fine'});
+    res.json({ status: "OK"});
 });
 
 module.exports = routes;
