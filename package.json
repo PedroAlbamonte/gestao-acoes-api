@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon src/index.js",
+    "debug": "nodemon --inspect src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@lfreneda/eh-dia-util": "^1.2.0",
+    "axios": "^0.19.2",
+    "bovespa": "^0.2.5",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "knex": "^0.20.11",
+    "pg": "^8.3.0",
+    "sqlite3": "^4.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  }
+}
