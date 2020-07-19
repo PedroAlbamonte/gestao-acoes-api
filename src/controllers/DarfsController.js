@@ -9,10 +9,10 @@ module.exports = {
     async index(request, response) {
         let operacoes = await connection('operacao')
             .where({
-                'id': request.user.id
+                'user_id': request.user.id
             })
             .select([
-            'operacao.*'
+                'operacao.*'
             ])
             .orderBy(['data', 'papel', 'tipo']);
 

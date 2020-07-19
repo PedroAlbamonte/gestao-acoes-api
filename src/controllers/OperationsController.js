@@ -10,7 +10,7 @@ module.exports = {
     const operacao = await connection('operacao')
       // .limit(5)
       .where({
-        'id': request.user.id
+        'user_id': request.user.id
       })
       .offset((page - 1) * 5)
       .select([
