@@ -2,25 +2,29 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./routes');
 const GoogleAuth = require('simple-google-openid');
+const userIntercept = require('./modules/userIntercept');
+const httpsIntercept = require('./modules/httpsIntercept');
 
 const port = process.env.PORT || 3333;
-const environment = process.env.NODE_ENV || 'development';
 const app = express();
 
 var googleClientId = process.env.GOOGLE_CLIENT_ID || 'client_id';
 console.log(googleClientId);
+
+//Valida utilização de HTTPS 
+app.use(httpsIntercept.checkHttps);
+
+//CORS
+app.use(cors());
+
+//Authenticação
 app.use(GoogleAuth(googleClientId));
 app.use(GoogleAuth.guardMiddleware());
 
-app.use(cors());
+//Trata dados do usuário
+app.use(userIntercept.treatUser);
+
 app.use(express.json());
-app.use(function(req, res, next) {
-    if( environment !== 'development' && req.headers['x-forwarded-proto'] !== 'https') {
-        return res.status(403).send({message: 'SSL required'});
-    }
-    // allow the request to continue
-    next();
-});
 
 app.use(routes);
 

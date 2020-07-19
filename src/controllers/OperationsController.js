@@ -2,6 +2,7 @@ const connection = require('../database/connection');
 
 module.exports = {
   async index(request, response) {
+    //console.log(request.user);
     console.log(request.user);
     const { page = 1 } = request.query;
 
