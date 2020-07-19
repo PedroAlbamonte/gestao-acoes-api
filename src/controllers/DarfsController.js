@@ -8,6 +8,9 @@ const aliquotaFii = 0.20;
 module.exports = {
     async index(request, response) {
         let operacoes = await connection('operacao')
+            .where({
+                'id': request.user.id
+            })
             .select([
             'operacao.*'
             ])

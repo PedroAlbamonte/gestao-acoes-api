@@ -7,7 +7,7 @@ module.exports = {
         const userDisplayName = req.user.displayName;
         const userEmail = req.user.emails[0].value;
         const provider = req.user.provider;
-        console.log(`${provider} | ${providerUserId} | ${userDisplayName} | ${userEmail} | ${roles.NONE}`)
+        // console.log(`${provider} | ${providerUserId} | ${userDisplayName} | ${userEmail} | ${roles.NONE}`)
 
         //Verifica se o usuário já existe
         const user = await connection('users')
@@ -19,10 +19,10 @@ module.exports = {
             'users.*'
         ]);
 
-        console.log(user);
+        // console.log(user);
 
         if (!user[0]){
-            console.log(`Usuário não existe`);
+            // console.log(`Usuário não existe`);
             await connection('users').insert({
                 provider: provider,
                 provider_user_id: providerUserId,

@@ -3,13 +3,15 @@ const connection = require('../database/connection');
 module.exports = {
   async index(request, response) {
     //console.log(request.user);
-    console.log(request.user);
     const { page = 1 } = request.query;
 
     const [count] = await connection('operacao').count();
 
     const operacao = await connection('operacao')
       // .limit(5)
+      .where({
+        'id': request.user.id
+      })
       .offset((page - 1) * 5)
       .select([
         'operacao.*'

@@ -13,6 +13,9 @@ module.exports = {
 
     async index(request, response) {
         const operacoes = await connection('operacao')
+          .where({
+            'id': request.user.id
+          })
           .select([
             'operacao.*'
           ])
