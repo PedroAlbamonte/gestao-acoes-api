@@ -25,6 +25,9 @@ module.exports = {
                 name: userDisplayName,
                 email: userEmail,
                 role: roles.NONE
+            })
+            .catch(error => { 
+                console.log('caught', error.message); 
             });
             req.user.id = id;
             req.user.role = roles.NONE;
