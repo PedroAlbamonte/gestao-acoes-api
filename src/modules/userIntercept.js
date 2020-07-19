@@ -19,6 +19,7 @@ module.exports = {
         ]);
 
         if (!user[0]){
+            console.log(`${provider} | ${providerUserId} | ${userDisplayName} | ${userEmail} | ${roles.NONE}`)
             const [id] = await connection('users').insert({
                 provider: provider,
                 provider_user_id: providerUserId,
