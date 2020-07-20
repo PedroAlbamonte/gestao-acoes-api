@@ -4,13 +4,6 @@ const ehDiaUtil = require('@lfreneda/eh-dia-util')
 
 
 module.exports = {
-    async teste(request, response) {
-        const { papel, data: dataStr } = request.body;
-        var data = new Date(dataStr);
-        const {cotacao} = await cotacoes.getCotacao(papel, data.toISOString());
-        return response.json(cotacao);
-    },
-
     async index(request, response) {
         const operacoes = await connection('operacao')
           .where({

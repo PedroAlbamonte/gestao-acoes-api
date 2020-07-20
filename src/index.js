@@ -4,6 +4,7 @@ const routes = require('./routes');
 const GoogleAuth = require('simple-google-openid');
 const userIntercept = require('./modules/userIntercept');
 const httpsIntercept = require('./modules/httpsIntercept');
+require('dotenv/config');
 
 const port = process.env.PORT || 3333;
 const app = express();
