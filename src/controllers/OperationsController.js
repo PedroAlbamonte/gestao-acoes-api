@@ -7,7 +7,7 @@ module.exports = {
 
     const [count] = await connection('operacao').count();
 
-    const operacao = await connection('operacao')
+    const operacoes = await connection('operacao')
       // .limit(5)
       .where({
         'user_id': request.user.id
@@ -20,7 +20,15 @@ module.exports = {
 
     response.header('X-Total-Count', count['count(*)']);
 
-    return response.json(operacao);
+    operacoes.forEach( operacao => {
+      operacao.preco = Number(operacao.preco);
+      operacao.subtotal = Number(operacao.subtotal);
+      operacao.corretagem = Number(operacao.corretagem);
+      operacao.ir = Number(operacao.ir);
+      operacao.total = Number(operacao.total);
+    })
+
+    return response.json(operacoes);
   },
 
   async create(request, response) {
