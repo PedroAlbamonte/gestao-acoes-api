@@ -85,6 +85,8 @@ module.exports = {
                 }
 
                 if (operacoesPorPapelData[op.data] === undefined){
+                    console.log(op.data);
+                    console.log(typeof(op.data));
                     operacoesPorPapelData[op.data] = new Object();
                 }
 
@@ -161,7 +163,7 @@ module.exports = {
                             // console.log(ex);
                         }
                         
-                        console.log(`${id}, ${tipoDarf}, ${papel}, ${tipo}, ${irPago}, ${quantidade}, ${precoMedio}, ${data}`);
+                        console.log(`${id}, ${idDarf}, ${tipoDarf}, ${papel}, ${tipo}, ${irPago}, ${quantidade}, ${precoMedio}, ${data}`);
                         darfs[idDarf][tipoDarf]['lucro'] = Number(darfs[idDarf][tipoDarf]['lucro']) + Number(lucro);
                         darfs[idDarf][tipoDarf]['irPago'] = Number(darfs[idDarf][tipoDarf]['irPago']) + Number(irPago);
                         darfs[idDarf][tipoDarf]['operacoes'].push({papel, tipo, irPago, quantidade, precoMedio, lucro});
