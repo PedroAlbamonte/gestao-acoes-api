@@ -29,6 +29,9 @@ module.exports = {
         const promises = operacoes.map(async (op, idx) =>  {
             let {codbdi} = await cotacoes.getCotacao(op.papel.toString(), "2020-05-13")
             op.fii = codbdi == '12' ? true : false;
+            if (typeof(op.data) === 'object'){
+                op.data = `${op.data.getFullYear()}-${op.data.getMonth().toString().length < 2 ? '0' + (op.data.getMonth()+1) : (op.data.getMonth()+1)}-${op.data.getDate().toString().length < 2 ? '0' + op.data.getDate() : op.data.getDate()}`;
+            }            
         })
 
         var darfs = new Object();
@@ -85,8 +88,8 @@ module.exports = {
                 }
 
                 if (operacoesPorPapelData[op.data] === undefined){
-                    console.log(op.data);
-                    console.log(typeof(op.data));
+                    // console.log(op.data);
+                    // console.log(typeof(op.data));
                     operacoesPorPapelData[op.data] = new Object();
                 }
 
@@ -163,7 +166,7 @@ module.exports = {
                             // console.log(ex);
                         }
                         
-                        console.log(`${id}, ${idDarf}, ${tipoDarf}, ${papel}, ${tipo}, ${irPago}, ${quantidade}, ${precoMedio}, ${data}`);
+                        // console.log(`${id}, ${idDarf}, ${tipoDarf}, ${papel}, ${tipo}, ${irPago}, ${quantidade}, ${precoMedio}, ${data}`);
                         darfs[idDarf][tipoDarf]['lucro'] = Number(darfs[idDarf][tipoDarf]['lucro']) + Number(lucro);
                         darfs[idDarf][tipoDarf]['irPago'] = Number(darfs[idDarf][tipoDarf]['irPago']) + Number(irPago);
                         darfs[idDarf][tipoDarf]['operacoes'].push({papel, tipo, irPago, quantidade, precoMedio, lucro});
