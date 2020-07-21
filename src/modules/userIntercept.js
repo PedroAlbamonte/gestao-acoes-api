@@ -9,6 +9,12 @@ module.exports = {
         const provider = req.user.provider;
         // console.log(`${provider} | ${providerUserId} | ${userDisplayName} | ${userEmail} | ${roles.NONE}`)
 
+        //Remove o path de /security/validate da validação
+        // console.log(req.path);
+        // if (req.path == '/security/validate' ) {
+        //     return next();
+        // }
+
         //Verifica se o usuário já existe
         const user = await connection('users')
         .where({
@@ -46,7 +52,7 @@ module.exports = {
         if (req.user.role == roles.NONE){
             return res.status(403).send({message: 'User not authorized'});
         } else {
-            next();
+            return next();
         }
     },
 }
