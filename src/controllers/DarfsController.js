@@ -161,6 +161,7 @@ module.exports = {
                             // console.log(ex);
                         }
                         
+                        console.log(`${id}, ${tipoDarf}, ${papel}, ${tipo}, ${irPago}, ${quantidade}, ${precoMedio}, ${data}`);
                         darfs[idDarf][tipoDarf]['lucro'] = Number(darfs[idDarf][tipoDarf]['lucro']) + Number(lucro);
                         darfs[idDarf][tipoDarf]['irPago'] = Number(darfs[idDarf][tipoDarf]['irPago']) + Number(irPago);
                         darfs[idDarf][tipoDarf]['operacoes'].push({papel, tipo, irPago, quantidade, precoMedio, lucro});
