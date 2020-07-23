@@ -46,7 +46,7 @@ module.exports = {
       ir,
       total,
       user_id
-    })
+    }, 'id')
     .catch(error => {
       console.log(error);
     });
