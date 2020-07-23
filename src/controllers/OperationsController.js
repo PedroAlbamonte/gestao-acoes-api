@@ -35,7 +35,7 @@ module.exports = {
     const { tipo, papel, data, preco, quantidade, subtotal, corretagem, ir, total } = request.body;
     const user_id = request.user.id;
 
-    const retorno = await connection('operacao').insert({
+    const [id] = await connection('operacao').insert({
       tipo,
       papel,
       data,
@@ -50,8 +50,8 @@ module.exports = {
     .catch(error => {
       console.log(error);
     });
-    console.log(retorno);
-    return response.json({ id: 9999999999 });
+    // console.log(retorno);
+    return response.json({ id });
   },
 
   async delete(request, response) {
