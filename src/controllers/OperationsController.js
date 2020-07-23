@@ -33,6 +33,7 @@ module.exports = {
 
   async create(request, response) {
     const { tipo, papel, data, preco, quantidade, subtotal, corretagem, ir, total } = request.body;
+    const user_id = request.user.id;
 
     const [id] = await connection('operacao').insert({
       tipo,
@@ -43,7 +44,8 @@ module.exports = {
       subtotal,
       corretagem,
       ir,
-      total
+      total,
+      user_id
     });
 
     return response.json({ id });
