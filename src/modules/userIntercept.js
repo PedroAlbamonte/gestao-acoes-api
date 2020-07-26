@@ -29,18 +29,19 @@ module.exports = {
 
         if (!user[0]){
             // console.log(`Usuário não existe`);
-            await connection('users').insert({
+            const [id] = await connection('users').insert({
                 provider: provider,
                 provider_user_id: providerUserId,
                 name: userDisplayName,
                 email: userEmail,
-                role: roles.NONE
-            })
+                role: roles.USER
+            }, 'id')
             .catch(error => { 
                 console.log('caught', error.message); 
             });
-            
-            req.user.role = roles.NONE;
+
+            req.user.id = id;
+            req.user.role = roles.USER;
             req.user.providerUserId = providerUserId;
         } else {
             //console.log('Usuário existe');
