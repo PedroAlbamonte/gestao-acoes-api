@@ -1,12 +1,15 @@
 const connection = require('../database/connection');
 const cotacoes = require('../modules/cotacoes');
+const util = require('../modules/util');
 
 const aliquotaNormal = 0.15;
 const aliquotaDaytrade = 0.20;
 const aliquotaFii = 0.20;
+const isencaoMovimentacaoNormal = 20000;
 
 module.exports = {
     async index(request, response) {
+        // Consulta todas as operações do usuário ordenadas por data, papel e tipo [1- Compra | 2 - Venda]
         let operacoes = await connection('operacao')
             .where({
                 'user_id': request.user.id
@@ -15,7 +18,8 @@ module.exports = {
                 'operacao.*'
             ])
             .orderBy(['data', 'papel', 'tipo']);
-
+        
+        // Consulta a tabela de opções
         const confOpcoes = await connection('conf_opcoes')
             .select([
                 'conf_opcoes.*'
@@ -23,12 +27,14 @@ module.exports = {
 
         var opcoes = new Object();
         confOpcoes.forEach(op => {
-                opcoes[op.id] = op.mes_ref;
-            });
+            opcoes[op.id] = op.mes_ref;
+        });
 
+        // Consulta se o papel é de uma FII ou não
         const promises = operacoes.map(async (op, idx) =>  {
             let {codbdi} = await cotacoes.getCotacao(op.papel.toString(), "2020-05-13")
             op.fii = codbdi == '12' ? true : false;
+            // Transforma a data em string
             if (typeof(op.data) === 'object'){
                 op.data = `${op.data.getFullYear()}-${op.data.getMonth().toString().length < 2 ? '0' + (op.data.getMonth()+1) : (op.data.getMonth()+1)}-${op.data.getDate().toString().length < 2 ? '0' + op.data.getDate() : op.data.getDate()}`;
             }            
@@ -48,7 +54,6 @@ module.exports = {
                 if (op.papel.length > 6) {
                     mesExercicio = opcoes[op.papel[4]];
                     anoExercicio = (opcoes[op.papel[4]] == 1 && ((new Date(op.data)).getMonth() + 1) != 1) ? ((new Date(op.data)).getFullYear() + 1) : (new Date(op.data)).getFullYear();
-                    // console.log(op.data + "|" + anoExercicio + "|" + (new Date(op.data)).getFullYear()  + "|" + ((new Date(op.data)).getMonth()+1))
                 }
                 else {
                     mesExercicio = (new Date(op.data)).getMonth() + 1;
@@ -66,30 +71,33 @@ module.exports = {
                     darfs[id]['normal'] = new Object();
                     darfs[id]['normal']['lucro'] = 0;
                     darfs[id]['normal']['saldo'] = 0;
-                    darfs[id]['normal']['irPago'] = 0;
-                    darfs[id]['normal']['irSaldo'] = 0;
                     darfs[id]['normal']['valor'] = 0;
+                    darfs[id]['normal']['valorMovimentado'] = 0;
                     darfs[id]['normal']['operacoes'] = new Array();
+                    darfs[id]['opcoes'] = new Object();
+                    darfs[id]['opcoes']['lucro'] = 0;
+                    darfs[id]['opcoes']['valorMovimentado'] = 0;
+                    darfs[id]['opcoes']['operacoes'] = new Array();
                     darfs[id]['daytrade'] = new Object();
                     darfs[id]['daytrade']['lucro'] = 0;
                     darfs[id]['daytrade']['saldo'] = 0;
-                    darfs[id]['daytrade']['irPago'] = 0;
-                    darfs[id]['daytrade']['irSaldo'] = 0;
                     darfs[id]['daytrade']['valor'] = 0;
+                    darfs[id]['daytrade']['valorMovimentado'] = 0;
                     darfs[id]['daytrade']['operacoes'] = new Array();
                     darfs[id]['fii'] = new Object();
                     darfs[id]['fii']['lucro'] = 0;
                     darfs[id]['fii']['saldo'] = 0;
-                    darfs[id]['fii']['irPago'] = 0;
-                    darfs[id]['fii']['irSaldo'] = 0;
                     darfs[id]['fii']['valor'] = 0;
+                    darfs[id]['fii']['valorMovimentado'] = 0;
                     darfs[id]['fii']['operacoes'] = new Array();
+                    darfs[id]['ir'] = new Object();
+                    darfs[id]['ir']['pago'] = 0;
+                    darfs[id]['ir']['saldo'] = 0;
+                    darfs[id]['ir']['operacoes'] = new Array();
                     darfs[id]['valorDevido'] = 0;
                 }
 
                 if (operacoesPorPapelData[op.data] === undefined){
-                    // console.log(op.data);
-                    // console.log(typeof(op.data));
                     operacoesPorPapelData[op.data] = new Object();
                 }
 
@@ -112,37 +120,38 @@ module.exports = {
             })
 
             acumulado = new Object();
-            const addAcumulado = ((papel, tipo, irPago, quantidade, precoMedio) => {
+            const addAcumulado = ((papel, tipo, quantidade, precoMedio) => {
                 if ( acumulado[papel] === undefined){
                     acumulado[papel] = new Object();
                 }
                 if ( acumulado[papel][tipo] === undefined){
                     acumulado[papel][tipo] = new Object();
-                    acumulado[papel][tipo]['irPago'] = 0
                     acumulado[papel][tipo]['precoMedio'] = 0
                     acumulado[papel][tipo]['quantidade'] = 0
                 }
 
-                acumulado[papel][tipo]['irPago'] = Number(acumulado[papel][tipo]['irPago']) + Number(irPago);
                 acumulado[papel][tipo]['precoMedio'] = ((Number(acumulado[papel][tipo]['precoMedio']) * Number(acumulado[papel][tipo]['quantidade'])) + (Number(precoMedio) * Number(quantidade))) / (Number(quantidade) + Number(acumulado[papel][tipo]['quantidade']))
                 acumulado[papel][tipo]['quantidade'] = Number(quantidade) + Number(acumulado[papel][tipo]['quantidade'])
             })
 
-            const subAcumulado = ((papel, tipo, irPago, quantidade, precoMedio) => {
-                acumulado[papel][tipo]['irPago'] = Number(acumulado[papel][tipo]['irPago']) - Number(irPago);
-                if (acumulado[papel][tipo]['irPago'] < 0) acumulado[papel][tipo]['irPago'] = 0;
-                // acumulado[papel][tipo]['precoMedio'] = ((Number(acumulado[papel][tipo]['precoMedio']) * Number(acumulado[papel][tipo]['quantidade'])) - (Number(precoMedio) * Number(quantidade))) / (Number(acumulado[papel][tipo]['quantidade'])-Number(quantidade))
+            const subAcumulado = ((papel, tipo, quantidade) => {
                 acumulado[papel][tipo]['quantidade'] = Number(acumulado[papel][tipo]['quantidade']) - Number(quantidade);
                 if (acumulado[papel][tipo]['quantidade'] == 0) {
-                    acumulado[papel][tipo]['irPago'] = 0;
                     acumulado[papel][tipo]['precoMedio'] = 0;
                 }
             })
 
-            //Trata operação normal e FII
+            //Lógica para tratar operação normal, opção e FII
             const trataOperacao = ((id, tipoDarf, papel, tipo, irPago, quantidade, precoMedio, data) => {
                 let antiTipo = (tipo == '1') ? '2' : '1' ;
-                var idDarf = ''
+                var idDarf = '';
+                
+                var idIr = data.substring(0, 7);
+                darfs[idIr]['ir']['pago'] = Number(darfs[idIr]['ir']['pago']) + Number(irPago);
+                if (Number(irPago) != 0) {
+                    darfs[idIr]['ir']['operacoes'].push({ papel, data, ir: Number(irPago) });
+                }
+
                 if (papel.length > 6) {
                     idDarf = data.substring(0, 7);
                 } else {
@@ -150,45 +159,45 @@ module.exports = {
                 }
 
                 if (acumulado[papel] === undefined || acumulado[papel][antiTipo] === undefined || acumulado[papel][antiTipo]['quantidade'] == 0) {
-                    addAcumulado(papel, tipo, irPago, quantidade, precoMedio);
+                    addAcumulado(papel, tipo, quantidade, precoMedio);
                 } else {
                     if (acumulado[papel][antiTipo]['quantidade'] >= quantidade) {
                         // Quantidade no acúmulo maior ou igual do que na operação
                         let lucro;
+                        let valorMovimentado = Number(precoMedio) * Number(quantidade);
                         if (tipo == '1') {
                             lucro = (Number(quantidade) * Number(acumulado[papel][antiTipo]['precoMedio'])) - (Number(precoMedio) * Number(quantidade));
+                            darfs[idDarf][tipoDarf]['operacoes'].push({data, papel, tipo, quantidade, valorCompra: Number(precoMedio), valorVenda: Number(acumulado[papel][antiTipo]['precoMedio']), lucro});
                         } else { 
                             lucro = (Number(precoMedio) * Number(quantidade)) - (Number(quantidade) * Number(acumulado[papel][antiTipo]['precoMedio']));
-                        }
-                        try {
-                            irPago = Number(acumulado[papel]['2']['irPago']) + Number(irPago);
-                        } catch (ex) {
-                            // console.log(ex);
+                            darfs[idDarf][tipoDarf]['operacoes'].push({data, papel, tipo, quantidade, valorCompra: Number(acumulado[papel][antiTipo]['precoMedio']), valorVenda: Number(precoMedio), lucro});
                         }
                         
-                        // console.log(`${id}, ${idDarf}, ${tipoDarf}, ${papel}, ${tipo}, ${irPago}, ${quantidade}, ${precoMedio}, ${data}`);
                         darfs[idDarf][tipoDarf]['lucro'] = Number(darfs[idDarf][tipoDarf]['lucro']) + Number(lucro);
-                        darfs[idDarf][tipoDarf]['irPago'] = Number(darfs[idDarf][tipoDarf]['irPago']) + Number(irPago);
-                        darfs[idDarf][tipoDarf]['operacoes'].push({papel, tipo, irPago, quantidade, precoMedio, lucro});
-                        subAcumulado(papel, antiTipo, irPago, quantidade, precoMedio);
+                        darfs[idDarf][tipoDarf]['valorMovimentado'] = Number(darfs[idDarf][tipoDarf]['valorMovimentado']) + Number(valorMovimentado);
+                        
+                        subAcumulado(papel, antiTipo, quantidade);
                     } else {
                         //Menor quantidade no acúmulo do que na operação
                         let lucro;
+                        let valorMovimentado = Number(precoMedio) * Number(quantidade);
                         if (tipo == '1') {
-                            lucro = (Number(precoMedio) * Number(Number(acumulado[papel][antiTipo]['quantidade']))) - (Number(Number(acumulado[papel][antiTipo]['quantidade'])) * Number(acumulado[papel][antiTipo]['precoMedio']));
+                            lucro = (Number(acumulado[papel][antiTipo]['quantidade']) * Number(acumulado[papel][antiTipo]['precoMedio'])) - (Number(precoMedio) * Number(acumulado[papel][antiTipo]['quantidade']));
+                            darfs[idDarf][tipoDarf]['operacoes'].push({data, papel, tipo, quantidade: Number(acumulado[papel][antiTipo]['quantidade']), valorCompra: Number(precoMedio), valorVenda: Number(acumulado[papel][antiTipo]['precoMedio']), lucro});
                         } else { 
-                            lucro = (Number(quantidade) * Number(acumulado[papel][antiTipo]['precoMedio'])) - (Number(precoMedio) * Number(quantidade));
+                            lucro = (Number(precoMedio) * Number(acumulado[papel][antiTipo]['quantidade'])) - (Number(acumulado[papel][antiTipo]['quantidade']) * Number(acumulado[papel][antiTipo]['precoMedio']));
+                            darfs[idDarf][tipoDarf]['operacoes'].push({data, papel, tipo, quantidade: Number(acumulado[papel][antiTipo]['quantidade']), valorCompra: Number(acumulado[papel][antiTipo]['precoMedio']), valorVenda: Number(precoMedio), lucro});
                         }
-                        irPago = Number(acumulado[papel]['2']['irPago']) + Number(irPago);
                         darfs[idDarf][tipoDarf]['lucro'] = Number(darfs[idDarf][tipoDarf]['lucro']) + Number(lucro);
-                        darfs[idDarf][tipoDarf]['irPago'] = Number(darfs[idDarf][tipoDarf]['irPago']) + Number(irPago);
-                        darfs[idDarf][tipoDarf]['operacoes'].push({papel, tipo, irPago, quantidade, precoMedio, lucro});
-                        subAcumulado(papel, antiTipo, 0, Number(acumulado[papel][antiTipo]['quantidade']), Number(precoMedio));
-                        addAcumulado(papel, tipo, 0, Number(Number(quantidade) - Number(acumulado[papel][antiTipo]['quantidade'])), Number(precoMedio));
+                        darfs[idDarf][tipoDarf]['valorMovimentado'] = Number(darfs[idDarf][tipoDarf]['valorMovimentado']) + Number(valorMovimentado);
+
+                        subAcumulado(papel, antiTipo, Number(acumulado[papel][antiTipo]['quantidade']));
+                        addAcumulado(papel, tipo, Number(Number(quantidade) - Number(acumulado[papel][antiTipo]['quantidade'])), Number(precoMedio));
                     }
                 }
             });
 
+            // Trata as operações
             for (var data in operacoesPorPapelData) {
                 for (var papel in operacoesPorPapelData[data]) {
                     let id = operacoesPorPapelData[data][papel]['id'];
@@ -212,32 +221,43 @@ module.exports = {
                             if (operacoesPorPapelData[data][papel]['1']['quantidade'] == operacoesPorPapelData[data][papel]['2']['quantidade']){
                                 // Quantidades iguais 
                                 let lucro = ( (Number(operacoesPorPapelData[data][papel]['2']['quantidade']) * Number(operacoesPorPapelData[data][papel]['2']['precoMedio'])) - (Number(operacoesPorPapelData[data][papel]['1']['quantidade']) * Number(operacoesPorPapelData[data][papel]['1']['precoMedio'])));
+                                darfs[idDaytrade]['daytrade']['operacoes'].push({
+                                    data, 
+                                    papel, 
+                                    tipo: 0, 
+                                    quantidade: Number(operacoesPorPapelData[data][papel]['2']['quantidade']), 
+                                    valorCompra: Number(operacoesPorPapelData[data][papel]['1']['precoMedio']), 
+                                    valorVenda: Number(operacoesPorPapelData[data][papel]['2']['precoMedio']), 
+                                    lucro});
+
                                 darfs[idDaytrade]['daytrade']['lucro'] = Number(darfs[idDaytrade]['daytrade']['lucro']) + lucro;
-                                darfs[idDaytrade]['daytrade']['irPago'] = Number(darfs[idDaytrade]['daytrade']['irPago']) + Number(operacoesPorPapelData[data][papel]['2']['irPago']);
-                                darfs[idDaytrade]['daytrade']['operacoes'].push({papel, 
-                                    'tipo': '2', 
-                                    'irPago': Number(operacoesPorPapelData[data][papel]['2']['irPago']), 
-                                    'quantidade': Number(operacoesPorPapelData[data][papel]['2']['quantidade']), 
-                                    'precoMedio': Number(operacoesPorPapelData[data][papel]['2']['precoMedio']),
-                                    lucro
-                                });
+                                darfs[idDaytrade]['ir']['pago'] = Number(darfs[idDaytrade]['ir']['pago']) + Number(operacoesPorPapelData[data][papel]['2']['irPago']);
+                                if (Number(darfs[idDaytrade]['ir']['pago']) != 0) {
+                                    darfs[idDaytrade]['ir']['operacoes'].push({ papel, data, ir: Number(operacoesPorPapelData[data][papel]['2']['irPago']) });
+                                }
                             } else {
                                 if (operacoesPorPapelData[data][papel]['1']['quantidade'] > operacoesPorPapelData[data][papel]['2']['quantidade']){
                                     //Mais compra do que venda
                                     let lucro =  ( (Number(operacoesPorPapelData[data][papel]['2']['quantidade']) * Number(operacoesPorPapelData[data][papel]['2']['precoMedio'])) - (Number(operacoesPorPapelData[data][papel]['2']['quantidade']) * Number(operacoesPorPapelData[data][papel]['1']['precoMedio'])));
+                                    darfs[idDaytrade]['daytrade']['operacoes'].push({
+                                        data, 
+                                        papel, 
+                                        tipo: 0, 
+                                        quantidade: Number(operacoesPorPapelData[data][papel]['2']['quantidade']), 
+                                        valorCompra: Number(operacoesPorPapelData[data][papel]['1']['precoMedio']), 
+                                        valorVenda: Number(operacoesPorPapelData[data][papel]['2']['precoMedio']), 
+                                        lucro});
                                     darfs[idDaytrade]['daytrade']['lucro'] = Number(darfs[idDaytrade]['daytrade']['lucro']) + lucro;
-                                    darfs[idDaytrade]['daytrade']['irPago'] = Number(darfs[idDaytrade]['daytrade']['irPago']) + Number(operacoesPorPapelData[data][papel]['2']['irPago']);
-                                    darfs[idDaytrade]['daytrade']['operacoes'].push({papel, 
-                                        'tipo': '2', 
-                                        'irPago': Number(operacoesPorPapelData[data][papel]['2']['irPago']), 
-                                        'quantidade': Number(operacoesPorPapelData[data][papel]['2']['quantidade']), 
-                                        'precoMedio': Number(operacoesPorPapelData[data][papel]['2']['precoMedio']),
-                                        lucro
-                                    });
+                                    darfs[idDaytrade]['ir']['pago'] = Number(darfs[idDaytrade]['ir']['pago']) + Number(operacoesPorPapelData[data][papel]['2']['irPago']);
+
+                                    if (Number(darfs[idDaytrade]['ir']['pago']) != 0) {
+                                        darfs[idDaytrade]['ir']['operacoes'].push({ papel, data, ir: Number(operacoesPorPapelData[data][papel]['2']['irPago']) });
+                                    }
+
                                     if (papel.length > 6) {
                                         trataOperacao(
                                             id, 
-                                            'normal', 
+                                            'opcoes', 
                                             papel+id, 
                                             '1', 
                                             0, 
@@ -258,19 +278,25 @@ module.exports = {
                                 } else {
                                     //Mais venda do que compra
                                     let lucro = ( (Number(operacoesPorPapelData[data][papel]['1']['quantidade']) * Number(operacoesPorPapelData[data][papel]['2']['precoMedio'])) - (Number(operacoesPorPapelData[data][papel]['1']['quantidade']) * Number(operacoesPorPapelData[data][papel]['1']['precoMedio'])));
+                                    darfs[idDaytrade]['daytrade']['operacoes'].push({
+                                        data, 
+                                        papel, 
+                                        tipo: 0, 
+                                        quantidade: Number(operacoesPorPapelData[data][papel]['1']['quantidade']), 
+                                        valorCompra: Number(operacoesPorPapelData[data][papel]['1']['precoMedio']), 
+                                        valorVenda: Number(operacoesPorPapelData[data][papel]['2']['precoMedio']), 
+                                        lucro});
+
                                     darfs[idDaytrade]['daytrade']['lucro'] = Number(darfs[idDaytrade]['daytrade']['lucro']) + lucro;
-                                    darfs[idDaytrade]['daytrade']['irPago'] = Number(darfs[idDaytrade]['daytrade']['irPago']) + Number(operacoesPorPapelData[data][papel]['2']['irPago']);
-                                    darfs[idDaytrade]['daytrade']['operacoes'].push({papel, 
-                                        'tipo': '1', 
-                                        'irPago': Number(operacoesPorPapelData[data][papel]['2']['irPago']), 
-                                        'quantidade': Number(operacoesPorPapelData[data][papel]['1']['quantidade']), 
-                                        'precoMedio': Number(operacoesPorPapelData[data][papel]['2']['precoMedio']),
-                                        lucro
-                                    });
+                                    darfs[idDaytrade]['ir']['pago'] = Number(darfs[idDaytrade]['ir']['pago']) + Number(operacoesPorPapelData[data][papel]['2']['irPago']);
+                                    if (Number(darfs[idDaytrade]['ir']['pago']) != 0) {
+                                        darfs[idDaytrade]['ir']['operacoes'].push({ papel, data, ir: Number(operacoesPorPapelData[data][papel]['2']['irPago']) });
+                                    }
+
                                     if (papel.length > 6) {
                                         trataOperacao(
                                             id, 
-                                            'normal', 
+                                            'opcoes', 
                                             papel+id, 
                                             '2', 
                                             0, 
@@ -296,7 +322,7 @@ module.exports = {
                                 //compra
                                 //Para opções concatena o ano ao Papel para não confundir com opções de anos diferentes
                                 if (papel.length > 6) {
-                                    trataOperacao(id, 'normal', papel + id, '1', operacoesPorPapelData[data][papel]['1']['irPago'], operacoesPorPapelData[data][papel]['1']['quantidade'], operacoesPorPapelData[data][papel]['1']['precoMedio'], data);
+                                    trataOperacao(id, 'opcoes', papel + id, '1', operacoesPorPapelData[data][papel]['1']['irPago'], operacoesPorPapelData[data][papel]['1']['quantidade'], operacoesPorPapelData[data][papel]['1']['precoMedio'], data);
                                 } else {
                                     trataOperacao(id, 'normal', papel, '1', operacoesPorPapelData[data][papel]['1']['irPago'], operacoesPorPapelData[data][papel]['1']['quantidade'], operacoesPorPapelData[data][papel]['1']['precoMedio'], data);
                                 }
@@ -306,7 +332,7 @@ module.exports = {
                                 //Venda
                                 //Para opções concatena o ano ao Papel para não confundir com opções de anos diferentes
                                 if (papel.length > 6) {
-                                    trataOperacao(id, 'normal', papel + id, '2', operacoesPorPapelData[data][papel]['2']['irPago'], operacoesPorPapelData[data][papel]['2']['quantidade'], operacoesPorPapelData[data][papel]['2']['precoMedio'], data);
+                                    trataOperacao(id, 'opcoes', papel + id, '2', operacoesPorPapelData[data][papel]['2']['irPago'], operacoesPorPapelData[data][papel]['2']['quantidade'], operacoesPorPapelData[data][papel]['2']['precoMedio'], data);
                                 } else {
                                     trataOperacao(id, 'normal', papel, '2', operacoesPorPapelData[data][papel]['2']['irPago'], operacoesPorPapelData[data][papel]['2']['quantidade'], operacoesPorPapelData[data][papel]['2']['precoMedio'], data);
                                 }
@@ -320,69 +346,91 @@ module.exports = {
             for (papel in acumulado){
                 if (papel.length > 6) {
                     let id = papel.substring(papel.length-7);
-
+                    let dia = util.getThirdMondayDay(Number(id.substring(0, 4)), Number(id.substring(5)));
+                    var data = `${id.substring(0, 4)}-${id.substring(5)}-${dia}`;
+                    
                     if (acumulado[papel]['1'] != undefined && acumulado[papel]['1']['quantidade'] > 0) {
                         let lucro = (Number(acumulado[papel]['1']['quantidade']) * Number(acumulado[papel]['1']['precoMedio']));
-                        darfs[id]['normal']['lucro'] = Number(darfs[id]['normal']['lucro']) - lucro;
-                        darfs[id]['normal']['operacoes'].push({
+                        darfs[id]['opcoes']['lucro'] = Number(darfs[id]['opcoes']['lucro']) - lucro;
+                        darfs[id]['opcoes']['operacoes'].push({
+                            data: data, 
                             papel, 
-                            'tipo': '1', 
-                            'irPago': 0, 
-                            'quantidade': acumulado[papel]['1']['quantidade'], 
-                            'precoMedio': acumulado[papel]['1']['precoMedio'],
-                            lucro
-                            });
+                            tipo: 1, 
+                            quantidade: Number(acumulado[papel]['1']['quantidade']),
+                            valorCompra: Number(acumulado[papel]['1']['precoMedio']),
+                            valorVenda: 0, 
+                            lucro});
                     }
 
                     if (acumulado[papel]['2'] != undefined && acumulado[papel]['2']['quantidade'] > 0) {
                         let lucro = (Number(acumulado[papel]['2']['quantidade']) * Number(acumulado[papel]['2']['precoMedio']));
-                        darfs[id]['normal']['lucro'] = Number(darfs[id]['normal']['lucro']) + lucro;
-                        darfs[id]['normal']['irPago'] = Number(darfs[id]['normal']['irPago']) + Number(acumulado[papel]['2']['irPago']);
-                        darfs[id]['normal']['operacoes'].push({
+                        darfs[id]['opcoes']['lucro'] = Number(darfs[id]['opcoes']['lucro']) + lucro;
+                        darfs[id]['opcoes']['operacoes'].push({
+                            data: data, 
                             papel, 
-                            'tipo': '2', 
-                            'irPago': acumulado[papel]['2']['irPago'], 
-                            'quantidade': acumulado[papel]['2']['quantidade'], 
-                            'precoMedio': acumulado[papel]['2']['precoMedio'],
-                            lucro
-                            });
+                            tipo: 2, 
+                            quantidade: Number(acumulado[papel]['2']['quantidade']),
+                            valorCompra: 0,
+                            valorVenda: Number(acumulado[papel]['2']['precoMedio']), 
+                            lucro});
                     }
                 }
-                // acumulado[papel][tipo]['irPago'] = 0
-                // acumulado[papel][tipo]['precoMedio'] = 0
-                // acumulado[papel][tipo]['quantidade'] = 0
             }
 
             var count = 0;
             var darfsArr = new Array();
-            var keyAnt = ''
 
-            for (var key in darfs) {
+            // Transforma o map em array para ordenação
+            var darfsArrTemp = Object.keys(darfs).map(function(key) {
+                return [key, darfs[key]];
+            });
+            
+            // Ordenação do Array por data
+            darfsArrTemp.sort(function(first, second) {
+                if (first[0] > second[0]){
+                    return 1;
+                }
+                if (second[0] > first[0]){
+                    return -1;
+                }
+                return 0;
+            });
+
+            // Calcula valores totais do mês
+            for (let i = 0; i < darfsArrTemp.length; i++) {
                 const trataCalculo = ((tipoDarf) => {
-                    if (keyAnt == '' || darfs[keyAnt][tipoDarf]['saldo'] >= 0){
-                        darfs[key][tipoDarf]['saldo'] = Number(darfs[key][tipoDarf]['lucro']);
-                        darfs[key][tipoDarf]['irSaldo'] = Number(darfs[key][tipoDarf]['irPago']);
+                    if (i == 0 || darfsArrTemp[i-1][1][tipoDarf]['saldo'] >= 0){
+                        darfsArrTemp[i][1][tipoDarf]['saldo'] = Number(darfsArrTemp[i][1][tipoDarf]['lucro']);
                     } else {
-                        darfs[key][tipoDarf]['saldo'] = Number(darfs[keyAnt][tipoDarf]['saldo']) + Number(darfs[key][tipoDarf]['lucro'])
-                        darfs[key][tipoDarf]['irSaldo'] = Number(darfs[keyAnt][tipoDarf]['irSaldo']) + Number(darfs[key][tipoDarf]['irPago'])
+                        darfsArrTemp[i][1][tipoDarf]['saldo'] = Number(darfsArrTemp[i-1][1][tipoDarf]['saldo']) + Number(darfsArrTemp[i][1][tipoDarf]['lucro'])
                     }
-                    // if (keyAnt != '' && darfs[keyAnt][tipoDarf]['valor'] < 0){
-                    //     darfs[key][tipoDarf]['irSaldo'] = Number(darfs[key][tipoDarf]['irSaldo']) - Number(darfs[keyAnt][tipoDarf]['valor']);
-                    // }
-                    if (Number(darfs[key][tipoDarf]['saldo']) > 0) {
+
+                    if (Number(darfsArrTemp[i][1][tipoDarf]['saldo']) > 0) {
                         let aliquota = (tipoDarf == 'normal') ? aliquotaNormal : ((tipoDarf == 'daytrade') ? aliquotaDaytrade : aliquotaFii);
-                        darfs[key][tipoDarf]['valor'] = Number(darfs[key][tipoDarf]['saldo'])*aliquota - Number(darfs[key][tipoDarf]['irSaldo'])
+                        // if (tipoDarf == 'normal' && darfsArrTemp[i][1][tipoDarf]['valorMovimentado'] <= isencaoMovimentacaoNormal) {
+                        //     aliquota = 0;
+                        // }
+                        darfsArrTemp[i][1][tipoDarf]['valor'] = Number(darfsArrTemp[i][1][tipoDarf]['saldo']) * aliquota;
                     }
                 })
 
+                darfsArrTemp[i][1]['normal']['lucro'] = Number(darfsArrTemp[i][1]['normal']['lucro']) + Number(darfsArrTemp[i][1]['opcoes']['lucro']);
                 trataCalculo('normal');
                 trataCalculo('daytrade');
                 trataCalculo('fii');
 
-                darfs[key]['valorDevido'] = Number(darfs[key]['normal']['valor']) + Number(darfs[key]['daytrade']['valor']) + Number(darfs[key]['fii']['valor'])
-                darfsArr.push(darfs[key])
+                if (i == 0 || darfsArrTemp[i-1][1]['valorDevido'] > 0) {
+                    darfsArrTemp[i][1]['ir']['saldo'] = Number(darfsArrTemp[i][1]['ir']['pago'])
+                } else {
+                    darfsArrTemp[i][1]['ir']['saldo'] = Number(darfsArrTemp[i][1]['ir']['saldo']) + Number(darfsArrTemp[i][1]['ir']['pago'])
+                }
+                darfsArrTemp[i][1]['valorDevido'] = Number(darfsArrTemp[i][1]['normal']['valor']) + 
+                                                    Number(darfsArrTemp[i][1]['daytrade']['valor']) + 
+                                                    Number(darfsArrTemp[i][1]['fii']['valor'])
+                darfsArrTemp[i][1]['valorDevido'] = (Number(darfsArrTemp[i][1]['valorDevido']) > 0) ? Number(darfsArrTemp[i][1]['valorDevido']) - Number(darfsArrTemp[i][1]['ir']['saldo']) : 0;
+                                                    
+                darfsArr.push(darfsArrTemp[i][1])
                 count++;
-                keyAnt = key;
             }
 
             response.header('X-Total-Count', count);

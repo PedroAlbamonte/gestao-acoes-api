@@ -10,7 +10,7 @@ const port = process.env.PORT || 3334;
 const app = express();
 
 var googleClientId = process.env.GOOGLE_CLIENT_ID || 'client_id';
-// console.log(googleClientId);
+console.log(googleClientId);
 
 //Valida utilização de HTTPS 
 app.use(httpsIntercept.checkHttps);
