@@ -17,7 +17,13 @@ module.exports = {
 
     for (var i=0; i<operacoes.length; i++){
       if (operacoes[i].papel.length > 6 && operacoes[i].data_vencimento == null){
-        const dataOperacao = new Date(Number(operacoes[i].data.substring(0,4)), Number(operacoes[i].data.substring(5,7))-1, Number(operacoes[i].data.substring(8)))
+        var dataOperacao;
+
+        if (typeof(operacoes[i].data) === 'object'){
+          dataOperacao = operacoes[i].data;
+        } else {
+          dataOperacao = new Date(Number(operacoes[i].data.substring(0,4)), Number(operacoes[i].data.substring(5,7))-1, Number(operacoes[i].data.substring(8)));
+        }
         const expDate = await util.getExpirationDate(operacoes[i].papel, dataOperacao);
         if (expDate !== undefined){
           // Atualiza a data de vencimento
