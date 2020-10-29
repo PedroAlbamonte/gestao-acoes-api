@@ -3,7 +3,7 @@ const connection = require('../database/connection');
 
 module.exports = {
   async dataVencimento(request, response){
-    const expDate = await util.getExpirationDate("COGNC60", new Date(2020, 8, 29));
+    const expDate = await util.getExpirationDate("COGNC60", new Date(2020, 9, 28));
     if (expDate !== undefined){ 
       response.json({ status: "OK", date: expDate.toISOString()});
     } else {
