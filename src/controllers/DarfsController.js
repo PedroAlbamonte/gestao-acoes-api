@@ -18,17 +18,6 @@ module.exports = {
                 'operacao.*'
             ])
             .orderBy(['data', 'papel', 'tipo']);
-        
-        // Consulta a tabela de opções
-        const confOpcoes = await connection('conf_opcoes')
-            .select([
-                'conf_opcoes.*'
-            ]);
-
-        var opcoes = new Object();
-        confOpcoes.forEach(op => {
-            opcoes[op.id] = op.mes_ref;
-        });
 
         // Consulta se o papel é de uma FII ou não
         const promises = operacoes.map(async (op, idx) =>  {
@@ -37,7 +26,10 @@ module.exports = {
             // Transforma a data em string
             if (typeof(op.data) === 'object'){
                 op.data = `${op.data.getFullYear()}-${op.data.getMonth().toString().length < 2 ? '0' + (op.data.getMonth()+1) : (op.data.getMonth()+1)}-${op.data.getDate().toString().length < 2 ? '0' + op.data.getDate() : op.data.getDate()}`;
-            }            
+            }
+            if (typeof(op.data_vencimento) !== 'object'){
+                op.data_vencimento = new Date(op.data_vencimento);
+            }
         })
 
         var darfs = new Object();
@@ -52,8 +44,8 @@ module.exports = {
                 var mesExercicio;
 
                 if (op.papel.length > 6) {
-                    mesExercicio = opcoes[op.papel[4]];
-                    anoExercicio = (opcoes[op.papel[4]] == 1 && ((new Date(op.data)).getMonth() + 1) != 1) ? ((new Date(op.data)).getFullYear() + 1) : (new Date(op.data)).getFullYear();
+                    mesExercicio = op.data_vencimento.getMonth()+1;
+                    anoExercicio = op.data_vencimento.getFullYear();
                 }
                 else {
                     mesExercicio = (new Date(op.data)).getMonth() + 1;
@@ -117,6 +109,7 @@ module.exports = {
                 operacoesPorPapelData[op.data][op.papel][op.tipo]['quantidade'] = Number(op.quantidade) + Number(operacoesPorPapelData[op.data][op.papel][op.tipo]['quantidade']);
                 operacoesPorPapelData[op.data][op.papel]['fii'] = op.fii;
                 operacoesPorPapelData[op.data][op.papel]['id'] = id;
+                operacoesPorPapelData[op.data][op.papel]['data_vencimento'] = op.data_vencimento;
             })
 
             acumulado = new Object();
@@ -359,7 +352,7 @@ module.exports = {
                             quantidade: Number(acumulado[papel]['1']['quantidade']),
                             valorCompra: Number(acumulado[papel]['1']['precoMedio']),
                             valorVenda: 0, 
-                            lucro});
+                            lucro: -lucro});
                     }
 
                     if (acumulado[papel]['2'] != undefined && acumulado[papel]['2']['quantidade'] > 0) {

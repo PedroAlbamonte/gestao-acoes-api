@@ -4,6 +4,7 @@ const OperationsController = require('./controllers/OperationsController');
 const StocksController = require('./controllers/StocksController');
 const DarfsController = require('./controllers/DarfsController');
 const SecurityController = require('./controllers/SecurityController');
+const UtilController = require('./controllers/UtilController');
 
 const routes = express.Router();
 
@@ -20,5 +21,8 @@ routes.get('/security/validate', SecurityController.validade);
 routes.get('/', function(req, res, next) {
     res.json({ status: "OK"});
 });
+
+routes.get('/util/test-expiration-date', UtilController.dataVencimento);
+routes.get('/util/set-all-expiration-date', UtilController.setAllExpirationDate);
 
 module.exports = routes;

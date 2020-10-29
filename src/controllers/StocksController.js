@@ -14,11 +14,6 @@ module.exports = {
           ])
           .orderBy('papel');
 
-        const confOpcoes = await connection('conf_opcoes')
-          .select([
-            'conf_opcoes.*'
-          ]);
-
         const formataData = (data) => {
             var dia = data.getDate();
             var mes = data.getMonth()+1;
@@ -27,11 +22,6 @@ module.exports = {
             dataFormatada = `${ano}-${mes.toString().length < 2 ? '0'+mes.toString() : mes.toString}-${dia.toString().length < 2 ? '0'+dia.toString() : dia.toString()}` ;
             return dataFormatada;
         }
-        
-        var opcoes = new Object();
-        confOpcoes.forEach(op => {
-            opcoes[op.id] = op.mes_ref;
-        })
 
         var stocks = new Object();
 
@@ -54,23 +44,14 @@ module.exports = {
             dataCotacaoMenos1 = formataData(ontem);
         }
 
-        ontem.setDate(1);
-        ontem.setMonth(0);
-        var dataAno = formataData(ontem);
-
-        while (!ehDiaUtil(dataAno, 'SP')){
-            ontem.setDate(ontem.getDate() + 1);
-            dataAno = formataData(ontem);
-        }
-
         const promises = operacoes.map(async (op, idx) =>  {
             var id;
-            var anoExercicio;
 
             if (op.papel.length > 6){
-                anoExercicio = (opcoes[op.papel[4]] == 1 && ((new Date(op.data)).getMonth()+1) != 1) ? ((new Date(op.data)).getFullYear() + 1) : (new Date(op.data)).getFullYear()
-                // console.log(op.data + "|" + anoExercicio + "|" + (new Date(op.data)).getFullYear()  + "|" + ((new Date(op.data)).getMonth()+1))
-                id = op.papel + anoExercicio;
+                if (typeof(op.data_vencimento) !== 'object'){
+                    op.data_vencimento = new Date(op.data_vencimento);
+                }
+                id = op.papel + op.data_vencimento.getFullYear();
             }else{
                 id = op.papel;
             }
@@ -80,24 +61,15 @@ module.exports = {
                 stocks[id]['quantidade'] = 0
                 stocks[id]['preco'] = 0
                 stocks[id]['total'] = 0
-                stocks[id]['totalAno'] = 0
-                stocks[id]['precoAno'] = 0
                 stocks[id]['nome'] = op.papel
 
                 if (op.papel.length > 6){
                     stocks[id].opcao = true;
-                    stocks[id].mesExercicio = opcoes[op.papel[4]];
-                    stocks[id].anoExercicio = anoExercicio;
+                    stocks[id].data_vencimento = op.data_vencimento;
                 }else{
                     stocks[id].opcao = false;
                 }
             }
-            // tipo
-            // preco
-            // subtotal
-            // corretagem
-            // ir
-            // total
             
             if (op.tipo == 1){
                 //Compra
@@ -126,10 +98,6 @@ module.exports = {
             } else {
                 stocks[id]['cotacao'] = cotacao;
             }
-
-            //Carrega a primeira cotação do ano
-            ({cotacao} = await cotacoes.getCotacao(id.toString(), dataAno))
-            stocks[id]['precoAno'] = cotacao ;
         })
 
         await Promise.all(promises);
@@ -140,9 +108,8 @@ module.exports = {
         for (var key in stocks) {
             if (stocks[key].quantidade != 0){
                 if (stocks[key].opcao){
-                    var anoAtual = (new Date()).getFullYear();
-                    var mesAtual = ((new Date()).getMonth()) + 1
-                    if (stocks[key].anoExercicio > anoAtual || (stocks[key].anoExercicio == anoAtual && stocks[key].mesExercicio >= mesAtual)){
+                    var dataAtual = new Date();
+                    if (stocks[key].data_vencimento.getTime() >= dataAtual.getTime()){
                         stocksArr.push(stocks[key])
                         count++;
                     }
