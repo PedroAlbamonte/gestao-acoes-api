@@ -7,6 +7,11 @@ const connection = require('../database/connection');
 const url = 'https://arquivos.b3.com.br/Web/Consolidated?lang=pt';
 const downloadFolder = path.join(path.resolve(), "src/files");
 
+//Cria o diretorio de download
+if (!fs.existsSync(downloadFolder)){
+    fs.mkdirSync(downloadFolder);
+}
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
