@@ -43,6 +43,13 @@ module.exports = {
 
     console.info(`Atualização finalizada`);
     response.json({status: "OK"});
+  },
+
+  async listFiles(request, response){
+    files = util.listFiles();
+
+    return response.json({status: "OK", files: files});
   }
 }
+
 

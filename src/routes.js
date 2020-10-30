@@ -24,5 +24,6 @@ routes.get('/', function(req, res, next) {
 
 routes.get('/util/test-expiration-date', UtilController.dataVencimento);
 routes.get('/util/set-all-expiration-date', UtilController.setAllExpirationDate);
+routes.get('/util/list-files', UtilController.listFiles);
 
 module.exports = routes;

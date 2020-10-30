@@ -141,11 +141,13 @@ async function getExpirationDate(opcao, dataOperacao) {
     let indexArray = indexInArray(files, fileDateFormat);
     if (indexArray < 0){
         await downloadFile(dataOperacao)
+        console.log("File downloaded");
         files = fs.readdirSync(downloadFolder);
         indexArray = indexInArray(files, fileDateFormat);
     }
 
     if (indexArray < 0){
+        console.log("Sem arquivos");
         return calculateExpirationDate(opcao, dataOperacao);
     } else {
         const filename = files[indexArray];
@@ -156,9 +158,16 @@ async function getExpirationDate(opcao, dataOperacao) {
         //     fs.unlinkSync(path.join(downloadFolder, file));
         // });
         if (stockData !== undefined){
+            console.log(`Com dado no arquivo - ${stockData.XprtnDt}`);
             return new Date(Number(stockData.XprtnDt.substring(0,4)), Number(stockData.XprtnDt.substring(5,7))-1, Number(stockData.XprtnDt.substring(8)));
         } else {
+            console.log("Sem dados da ação no arquivo");
             return calculateExpirationDate(opcao, dataOperacao);
         }
     }
+}
+
+module.exports.listFiles = listFiles;
+function listFiles(){
+    return fs.readdirSync(downloadFolder);
 }
