@@ -58,18 +58,24 @@ async function downloadFile(dataOperacao) {
             const data = new Date (ano, mes, dia);
 
             if (data.getTime() == dataOperacao.getTime()) { 
+                //Expandir o cartão com o link
                 const linkDiv = await divsCard[j].$$('a')
-                linkDiv[0].click({ clickCount: 1, delay: 100 });
-                console.log("2");
-                await page.waitForTimeout(1000);
+
                 //Realiza o download
                 const divs = await divsCard[j].$$('div#collapse');
-
                 for (var i=0; i<divs.length; i++){
                     const ps = await divs[i].$$('div > div > div > div > div.content > p');
                     const label = await (await ps[0].getProperty('textContent')).jsonValue();
                     if (label == 'Cadastro de Instrumentos (Listado)'){
                         const links = await ps[1].$$('a')
+                        const boxModel = await links[0].boxModel();
+
+                        if (boxModel == null) {
+                            linkDiv[0].click({ clickCount: 1, delay: 100 });
+                            console.log("Open Card Click");
+                            await page.waitForTimeout(1000);
+                        }
+
                         await links[0].click({ clickCount: 1, delay: 100 });
                         console.info(`Baixando o arquivo com data ${strData}`);
                         //Aguarda os downloads finalizarem
@@ -148,7 +154,9 @@ async function getExpirationDate(opcao, dataOperacao) {
 
     if (indexArray < 0){
         console.log("Sem arquivos");
-        return calculateExpirationDate(opcao, dataOperacao);
+        const dataCalculada = calculateExpirationDate(opcao, dataOperacao)
+        console.log(dataCalculada);
+        return dataCalculada;
     } else {
         const filename = files[indexArray];
         const stockData = await stockFromFile(path.join(downloadFolder, filename), opcao);
@@ -162,7 +170,9 @@ async function getExpirationDate(opcao, dataOperacao) {
             return new Date(Number(stockData.XprtnDt.substring(0,4)), Number(stockData.XprtnDt.substring(5,7))-1, Number(stockData.XprtnDt.substring(8)));
         } else {
             console.log("Sem dados da ação no arquivo");
-            return calculateExpirationDate(opcao, dataOperacao);
+            const dataCalculada = calculateExpirationDate(opcao, dataOperacao)
+            console.log(dataCalculada);
+            return dataCalculada;
         }
     }
 }
