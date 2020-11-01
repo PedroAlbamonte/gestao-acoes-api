@@ -35,25 +35,47 @@ module.exports = {
   async create(request, response) {
     const { tipo, papel, data, preco, quantidade, subtotal, corretagem, ir, total } = request.body;
     const user_id = request.user.id;
+    var id = 0
 
-    const dataVencimento = await util.getExpirationDate(papel, new Date(Number(data.substring(0,4)), Number(data.substring(5,7))-1, Number(data.substring(8))));
+    if (papel.length > 6){
+      //Opções
+      const dataVencimento = await util.getExpirationDate(papel, new Date(Number(data.substring(0,4)), Number(data.substring(5,7))-1, Number(data.substring(8))));
 
-    const [id] = await connection('operacao').insert({
-      tipo,
-      papel,
-      data,
-      preco,
-      quantidade,
-      subtotal,
-      corretagem,
-      ir,
-      total,
-      user_id,
-      data_vencimento: dataVencimento.toISOString()
-    }, 'id')
-    .catch(error => {
-      console.log(error);
-    });
+      [id] = await connection('operacao').insert({
+        tipo,
+        papel,
+        data,
+        preco,
+        quantidade,
+        subtotal,
+        corretagem,
+        ir,
+        total,
+        user_id,
+        data_vencimento: dataVencimento.toISOString()
+      }, 'id')
+      .catch(error => {
+        console.log(error);
+      });
+    } else {
+      // Papeis diferentes de opções
+      [id]= await connection('operacao').insert({
+        tipo,
+        papel,
+        data,
+        preco,
+        quantidade,
+        subtotal,
+        corretagem,
+        ir,
+        total,
+        user_id
+      }, 'id')
+      .catch(error => {
+        console.log(error);
+      });
+    }
+    
     // console.log(retorno);
     return response.json({ id });
   },
