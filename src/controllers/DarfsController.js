@@ -25,7 +25,7 @@ module.exports = {
             op.fii = codbdi == '12' ? true : false;
             // Transforma a data em string
             if (typeof(op.data) === 'object'){
-                op.data = `${op.data.getFullYear()}-${op.data.getMonth().toString().length < 2 ? '0' + (op.data.getMonth()+1) : (op.data.getMonth()+1)}-${op.data.getDate().toString().length < 2 ? '0' + op.data.getDate() : op.data.getDate()}`;
+                op.data = `${op.data.getFullYear()}-${(op.data.getMonth()+1).toString().length < 2 ? '0' + (op.data.getMonth()+1) : (op.data.getMonth()+1)}-${op.data.getDate().toString().length < 2 ? '0' + op.data.getDate() : op.data.getDate()}`;
             }
             if (typeof(op.data_vencimento) !== 'object'){
                 op.data_vencimento = new Date(op.data_vencimento);
@@ -415,7 +415,7 @@ module.exports = {
                 if (i == 0 || darfsArrTemp[i-1][1]['valorDevido'] > 0) {
                     darfsArrTemp[i][1]['ir']['saldo'] = Number(darfsArrTemp[i][1]['ir']['pago'])
                 } else {
-                    darfsArrTemp[i][1]['ir']['saldo'] = Number(darfsArrTemp[i][1]['ir']['saldo']) + Number(darfsArrTemp[i][1]['ir']['pago'])
+                    darfsArrTemp[i][1]['ir']['saldo'] = Number(darfsArrTemp[i-1][1]['ir']['saldo']) + Number(darfsArrTemp[i][1]['ir']['pago'])
                 }
                 darfsArrTemp[i][1]['valorDevido'] = Number(darfsArrTemp[i][1]['normal']['valor']) + 
                                                     Number(darfsArrTemp[i][1]['daytrade']['valor']) + 

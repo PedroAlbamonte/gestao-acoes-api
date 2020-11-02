@@ -1,16 +1,16 @@
 // Update with your config settings.
+require('dotenv').config();
 
 module.exports = {
 
   development: {
-    client: 'sqlite3',
-    connection: {
-      filename: './src/database/db.sqlite'
-    },
+    client: 'pg',
+    connection: process.env.DATABASE_URL, 
+    // connection: process.env.DATABASE_URL + '?ssl=true&sslmode=require&rejectUnauthorized=false', 
+    // connection: process.env.DATABASE_URL + '?ssl=true&sslmode=verify-ca&sslfactory=org.postgresql.ssl.NonValidatingFactory', 
     migrations: {
-      directory: './src/database/migrations'
-    },
-    useNullAsDefault: true,
+      directory: __dirname + '/src/database/migrations',
+    }
   },
 
   production: {
