@@ -182,7 +182,8 @@ async function getExpirationDate(opcao, dataOperacao) {
 
 module.exports.listFiles = listFiles;
 function listFiles(){
-    return fs.readdirSync(downloadFolder);
+    return {path: downloadFolder,
+            files: fs.readdirSync(downloadFolder)};
 }
 
 module.exports.getStockInfo = stockInfo;

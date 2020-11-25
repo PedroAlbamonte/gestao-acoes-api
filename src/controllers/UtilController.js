@@ -50,7 +50,7 @@ module.exports = {
   async listFiles(request, response){
     files = util.listFiles();
 
-    return response.json({status: "OK", files: files});
+    return response.json({status: "OK", path: files.path, files: files.files});
   }
 }
 
