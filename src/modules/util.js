@@ -60,9 +60,16 @@ async function downloadFile(dataOperacao) {
                   ano = Number(strData.substring(6));
             const data = new Date (ano, mes, dia);
 
-            console.log("Data         : " + data);
-            console.log("Data Operacao: " + dataOperacao);
-            if (data.getTime() == dataOperacao.getTime()) { 
+            // console.log("Data         : " + data);
+            // console.log("Data Operacao: " + dataOperacao);
+
+            const tmpData = formataData(data);
+            const tmpDataOperacao = formataData(dataOperacao);
+
+            // console.log("strData         : " + tmpData);
+            // console.log("strData Operacao: " + tmpDataOperacao);
+            // if (data.getTime() == dataOperacao.getTime()) { 
+            if (tmpData == tmpDataOperacao) {
                 //Expandir o cartão com o link
                 const linkDiv = await divsCard[j].$$('a')
 
