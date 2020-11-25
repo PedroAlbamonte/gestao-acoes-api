@@ -42,16 +42,13 @@ async function downloadFile(dataOperacao) {
             waitUntil: 'networkidle2',
           });
         await page._client.send('Page.setDownloadBehavior', {behavior: 'allow', downloadPath: downloadFolder});
-        console.log("0");
         // await page.waitForTimeout(5000);
-        console.log("1");
 
         //Pega o primeiro cartão
         const divsCard = (await page.$$('div.card'));
-        console.log(divsCard.length);
         //Pega a data
         if (divsCard === undefined || divsCard.length == 0) {
-            console.error("divsCard vazio - Falha ao acessar a página da B3");
+            console.error("divsCard vazio - Falha ao acessar a página da B3 '" + divsCard.length + "'");
             return undefined;
         }
 
