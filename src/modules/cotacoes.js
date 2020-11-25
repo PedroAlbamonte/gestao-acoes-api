@@ -30,7 +30,9 @@ const obtemNovaCotacao = async (papel, data) => {
     if ( consulta !== undefined ) {
         cotacao = consulta.cotacao
         categoryName = consulta.categoryName
-        await salvarCotacao(papel, data, cotacao, categoryName)
+        if (cotacao > 0) {
+            await salvarCotacao(papel, data, cotacao, categoryName)
+        }
     }
     
     return {cotacao, categoryName}
