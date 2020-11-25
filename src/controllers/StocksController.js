@@ -19,7 +19,7 @@ module.exports = {
             var mes = data.getMonth()+1;
             var ano = data.getFullYear();
 
-            dataFormatada = `${ano}-${mes.toString().length < 2 ? '0'+mes.toString() : mes.toString}-${dia.toString().length < 2 ? '0'+dia.toString() : dia.toString()}` ;
+            dataFormatada = `${ano}-${mes.toString().length < 2 ? '0'+mes.toString() : mes.toString()}-${dia.toString().length < 2 ? '0'+dia.toString() : dia.toString()}` ;
             return dataFormatada;
         }
 
@@ -44,7 +44,9 @@ module.exports = {
             dataCotacaoMenos1 = formataData(ontem);
         }
 
-        const promises = operacoes.map(async (op, idx) =>  {
+        // const promises = operacoes.map(async (op, idx) =>  {
+        for (var i=0; i<operacoes.length; i++) {
+            let op = operacoes[i];
             var id;
 
             if (op.papel.length > 6){
@@ -89,31 +91,41 @@ module.exports = {
             } else {
                 stocks[id]['total'] = stocks[id]['quantidade'] * stocks[id]['preco']
             }
+        }
 
-            //Carrega a última cotação
-            let {cotacao} = await cotacoes.getCotacao(id.toString(), dataCotacao)
-            if (cotacao == 0){
-                ({cotacao} = await cotacoes.getCotacao(id.toString(), dataCotacaoMenos1));
-                stocks[id]['cotacao'] = cotacao;
-            } else {
-                stocks[id]['cotacao'] = cotacao;
-            }
-        })
-
-        await Promise.all(promises);
+        // await Promise.all(promises);
         
         var count = 0;
         var stocksArr = new Array();
 
         for (var key in stocks) {
             if (stocks[key].quantidade != 0){
+                
                 if (stocks[key].opcao){
                     var dataAtual = new Date();
                     if (stocks[key].data_vencimento.getTime() >= dataAtual.getTime()){
+                        //Carrega a última cotação
+                        let stockInfo = undefined;
+                        stockInfo = await cotacoes.getCotacao(key.toString().substr(0, key.length-4), dataCotacao)
+                        
+                        if (stockInfo == undefined){
+                            stocks[key]['cotacao'] = 0;
+                        } else {
+                            stocks[key]['cotacao'] = stockInfo.cotacao;
+                        }
                         stocksArr.push(stocks[key])
                         count++;
                     }
                 }else{
+                    //Carrega a última cotação
+                    let stockInfo = undefined;
+                    stockInfo = await cotacoes.getCotacao(key.toString(), dataCotacao)
+                    
+                    if (stockInfo == undefined){
+                        stocks[key]['cotacao'] = 0;
+                    } else {
+                        stocks[key]['cotacao'] = stockInfo.cotacao;
+                    }
                     stocksArr.push(stocks[key])
                     count++;
                 }

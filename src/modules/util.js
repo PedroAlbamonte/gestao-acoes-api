@@ -12,6 +12,11 @@ if (!fs.existsSync(downloadFolder)){
     fs.mkdirSync(downloadFolder);
 }
 
+const formataData = (data) => {
+    let dataFormatada = data.toISOString().substring(0, 10)
+    return dataFormatada;
+}
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -66,7 +71,8 @@ async function downloadFile(dataOperacao) {
                 for (var i=0; i<divs.length; i++){
                     const ps = await divs[i].$$('div > div > div > div > div.content > p');
                     const label = await (await ps[0].getProperty('textContent')).jsonValue();
-                    if (label == 'Cadastro de Instrumentos (Listado)'){
+                    if (label == 'Cadastro de Instrumentos (Listado)' || 
+                        label == 'Negócios Consolidados do Pregão (Listado)'){
                         const links = await ps[1].$$('a')
                         const boxModel = await links[0].boxModel();
 
@@ -180,4 +186,76 @@ async function getExpirationDate(opcao, dataOperacao) {
 module.exports.listFiles = listFiles;
 function listFiles(){
     return fs.readdirSync(downloadFolder);
+}
+
+module.exports.getStockInfo = stockInfo;
+async function stockInfo(papel, data){
+    // Arquivo com as informações do papel
+    const fileDateFormat = `InstrumentsConsolidatedFile_${formataData(data).split('-').join("")}`
+    let stock = {};
+    stock.papel = papel;
+    let files = fs.readdirSync(downloadFolder);
+    let indexArray = indexInArray(files, fileDateFormat);
+    if (indexArray < 0){
+        await downloadFile(data)
+        console.log("File downloaded");
+        files = fs.readdirSync(downloadFolder);
+        indexArray = indexInArray(files, fileDateFormat);
+    }
+
+    if (indexArray < 0){
+        console.log("Sem arquivos");
+        stock.categoryName = "";
+        stock.vencimento = "";
+        stock.cotacao = 0
+    } else {
+        let filename = files[indexArray];
+        let stockData = await stockFromFile(path.join(downloadFolder, filename), papel);
+
+        if (stockData !== undefined){
+            console.log(`Com dado no arquivo - ${stockData.XprtnDt}`);
+            if (stockData.XprtnDt == "") {
+                stock.vencimento  = ""
+            } else {    
+                stock.vencimento = new Date(Number(stockData.XprtnDt.substring(0,4)), Number(stockData.XprtnDt.substring(5,7))-1, Number(stockData.XprtnDt.substring(8)));
+            }
+            stock.categoryName = stockData.SctyCtgyNm;
+        } else {
+            console.log("Sem dados da ação no arquivo");
+            let dataCalculada = "";
+            if (papel.length > 6) {
+                dataCalculada = calculateExpirationDate(papel, data);
+            }
+            stock.categoryName = "";
+            stock.vencimento = dataCalculada;
+        }
+
+        // Arquivo com as cotações
+        const fileDateFormat = `TradeInformationConsolidatedFile_${formataData(data).split('-').join("")}`
+        files = fs.readdirSync(downloadFolder);
+        indexArray = indexInArray(files, fileDateFormat);
+        if (indexArray < 0){
+            await downloadFile(data)
+            console.log("File downloaded");
+            files = fs.readdirSync(downloadFolder);
+            indexArray = indexInArray(files, fileDateFormat);
+        }
+
+        if (indexArray < 0){
+            console.log("Sem arquivos cotação");
+            stock.cotacao = 0
+        } else {
+            filename = files[indexArray];
+            stockData = await stockFromFile(path.join(downloadFolder, filename), papel);
+
+            if (stockData !== undefined){
+                stock.cotacao = parseFloat(stockData.LastPric.replace(',', '.'));
+            } else {
+                console.log("Sem dados da ação no arquivo de cotação");
+                stock.cotacao = 0;
+            }
+        }
+    }
+
+    return stock;
 }

@@ -21,8 +21,8 @@ module.exports = {
 
         // Consulta se o papel é de uma FII ou não
         const promises = operacoes.map(async (op, idx) =>  {
-            let {codbdi} = await cotacoes.getCotacao(op.papel.toString(), "2020-05-13")
-            op.fii = codbdi == '12' ? true : false;
+            let {categoryName} = await cotacoes.getCotacao(op.papel.toString(), "2020-05-13")
+            op.fii = categoryName == 'FUNDS' ? true : false;
             // Transforma a data em string
             if (typeof(op.data) === 'object'){
                 op.data = `${op.data.getFullYear()}-${(op.data.getMonth()+1).toString().length < 2 ? '0' + (op.data.getMonth()+1) : (op.data.getMonth()+1)}-${op.data.getDate().toString().length < 2 ? '0' + op.data.getDate() : op.data.getDate()}`;

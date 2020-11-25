@@ -1,13 +1,13 @@
 const connection = require('../database/connection');
-const bovespa = require('bovespa')();
+const util = require('./util');
 
-const salvarCotacao = async (papel, data, valor, codbdi) => {
+const salvarCotacao = async (papel, data, valor, categoryName) => {
     await connection('cotacoes')
     .insert({
         papel: papel,
         data: data.toISOString(),
         cotacao: valor,
-        codbdi: codbdi
+        category_name: categoryName
     })
     .catch(function (e) {
         console.log(`${papel} - ${data}`);
@@ -22,50 +22,42 @@ const formataData = (data) => {
 }
 
 const obtemNovaCotacao = async (papel, data) => {
-    let dataFormatada = formataData(data);
     let cotacao = 0;
-    let codbdi = '';
+    let categoryName = '';
 
-    let consulta = await bovespa(papel, dataFormatada)
-    .catch(function (e) {
-        if (e.response != undefined && e.response.status != 404) {
-            console.log(`${papel} - ${data}`);
-            console.log(e);
-        }
-        return undefined ;
-    })
+    let consulta = await util.getStockInfo(papel, data);
 
     if ( consulta !== undefined ) {
-        cotacao = Number(consulta.preult)
-        codbdi = consulta.codbdi
-        await salvarCotacao(papel, data, cotacao, codbdi)
+        cotacao = consulta.cotacao
+        categoryName = consulta.categoryName
+        await salvarCotacao(papel, data, cotacao, categoryName)
     }
     
-    return {cotacao, codbdi}
+    return {cotacao, categoryName}
 }
 
 module.exports = {
     async getCotacao(papel, data) {
-        let dataObj = new Date(data);
+        let dataObj = new Date(data + 'T03:00:00.000Z');
         let resultado = await connection('cotacoes')
             .where({
                 papel: papel,
                 data: dataObj.toISOString()
             })
-            .select('cotacao', 'codbdi')
+            .select('cotacao', 'category_name')
             .catch(function(error) {
                     return undefined;
                 }
             );
 
         if (resultado === undefined) {
-            return {cotacao: 0.0 , codbdi: ''};
+            return {cotacao: 0.0 , categoryName: ''};
         } else if (resultado.length == 0) {
-            let {cotacao, codbdi} = await obtemNovaCotacao(papel, dataObj)
-            return {cotacao, codbdi};
+            let {cotacao, categoryName} = await obtemNovaCotacao(papel, dataObj)
+            return {cotacao, categoryName};
         } else {
-            let [{cotacao, codbdi}] = resultado
-            return {cotacao, codbdi};
+            let [{cotacao, categoryName}] = resultado
+            return {cotacao, categoryName};
         }
     }
 }
