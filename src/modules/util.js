@@ -46,6 +46,7 @@ async function downloadFile(dataOperacao) {
 
         //Pega o primeiro cartão
         const divsCard = (await page.$$('div.card'));
+        console.log("Tamanho divsCard: " + divsCard.length)
         //Pega a data
         if (divsCard === undefined || divsCard.length == 0) {
             console.error("divsCard vazio - Falha ao acessar a página da B3 '" + divsCard.length + "'");
@@ -59,6 +60,8 @@ async function downloadFile(dataOperacao) {
                   ano = Number(strData.substring(6));
             const data = new Date (ano, mes, dia);
 
+            console.log("Data         : " + data);
+            console.log("Data Operacao: " + dataOperacao);
             if (data.getTime() == dataOperacao.getTime()) { 
                 //Expandir o cartão com o link
                 const linkDiv = await divsCard[j].$$('a')
