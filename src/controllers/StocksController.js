@@ -12,7 +12,7 @@ module.exports = {
           .select([
             'operacao.*'
           ])
-          .orderBy('papel');
+          .orderBy(['papel', 'data', 'tipo']);
 
         const formataData = (data) => {
             var dia = data.getDate();
