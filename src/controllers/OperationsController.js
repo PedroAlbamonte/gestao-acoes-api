@@ -36,10 +36,10 @@ module.exports = {
     const { tipo, papel, data, preco, quantidade, subtotal, corretagem, ir, total } = request.body;
     const user_id = request.user.id;
     var id = 0
+    const stockInfo = await util.getStockInfo(papel, new Date(Number(data.substring(0,4)), Number(data.substring(5,7))-1, Number(data.substring(8))));
 
     if (papel.length > 6){
       //Opções
-      const dataVencimento = await util.getExpirationDate(papel, new Date(Number(data.substring(0,4)), Number(data.substring(5,7))-1, Number(data.substring(8))));
 
       [id] = await connection('operacao').insert({
         tipo,
@@ -52,7 +52,8 @@ module.exports = {
         ir,
         total,
         user_id,
-        data_vencimento: dataVencimento.toISOString()
+        data_vencimento: stockInfo.vencimento.toISOString(),
+        category_name: stockInfo.categoryName
       }, 'id')
       .catch(error => {
         console.log(error);
@@ -69,7 +70,8 @@ module.exports = {
         corretagem,
         ir,
         total,
-        user_id
+        user_id,
+        category_name: stockInfo.categoryName
       }, 'id')
       .catch(error => {
         console.log(error);
