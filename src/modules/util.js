@@ -118,16 +118,21 @@ async function calculateExpirationDate(opcao, dataOperacao){
     //Carrega configurações das opções
     // Consulta a tabela de opções
     const confOpcoes = await connection('conf_opcoes')
-    .select([
-        'conf_opcoes.*'
-    ]);
+    .select()
+    .catch(function(error) {
+        console.log(error);
+        return undefined;
+    });
 
     var opcoes = new Object();
     for (var i=0; i<confOpcoes.length; i++) {
         opcoes[confOpcoes[i].id] = confOpcoes[i].mes_ref;
     };
 
-    const mesExercicio = opcoes[opcao[4]];
+    let mesExercicio = opcoes[opcao[4]];
+    if (mesExercicio === undefined) {
+        mesExercicio = dataOperacao.getMonth()+1;
+    }
     var anoExercicio = 0;
     if ((dataOperacao.getMonth()+1) <= mesExercicio) {
         anoExercicio = dataOperacao.getFullYear();
