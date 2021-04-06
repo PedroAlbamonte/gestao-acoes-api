@@ -17,7 +17,7 @@
   "homepage": "https://github.com/PedroAlbamonte/gestao-acoes-api/blob/master/README.md",
   "dependencies": {
     "@lfreneda/eh-dia-util": "^1.3.0",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "connect-timeout": "^1.9.0",
     "cors": "^2.8.5",
     "csv-parse": "^4.12.0",
