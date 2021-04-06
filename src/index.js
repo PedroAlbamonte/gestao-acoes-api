@@ -1,4 +1,5 @@
 const express = require('express');
+const timeout = require('connect-timeout')
 const cors = require('cors');
 const routes = require('./routes');
 const GoogleAuth = require('simple-google-openid');
@@ -27,6 +28,7 @@ app.use(userIntercept.treatUser);
 
 app.use(express.json());
 
+app.use(timeout('60s'))
 app.use(routes);
 
 app.listen(port);
